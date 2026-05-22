@@ -2,45 +2,53 @@
    DESIGN SYSTEM & VARIABLES
    ---------------------------------------------------- */
 :root {
-    /* HSL Colors */
-    --bg-main: hsl(228, 30%, 5%);
-    --bg-gradient: linear-gradient(135deg, hsl(228, 30%, 4%) 0%, hsl(228, 25%, 9%) 100%);
-    --panel-bg: hsla(228, 25%, 10%, 0.55);
-    --panel-border: hsla(228, 20%, 20%, 0.4);
-    --panel-border-glow: hsla(250, 88%, 66%, 0.15);
+    /* Institutional Blue France Palette */
+    --blue:          #000091;
+    --blue-hover:    #00006b;
+    --blue-active:   #000052;
+    --blue-tint:     #ececfe;
+    --blue-light:    #f3f3fe;
+    --blue-link:     #0063cb;
+    
+    --bg-main: #f6f6f6;
+    --bg-gradient: none;
+    --panel-bg: #ffffff;
+    --panel-border: #e5e5e5;
+    --panel-border-glow: rgba(0, 0, 145, 0.05);
     
     /* Accents & States */
-    --accent: hsl(250, 88%, 66%);
-    --accent-gradient: linear-gradient(90deg, hsl(250, 88%, 66%) 0%, hsl(280, 85%, 60%) 100%);
-    --accent-glow: hsla(250, 88%, 66%, 0.35);
+    --accent: var(--blue);
+    --accent-gradient: linear-gradient(90deg, var(--blue) 0%, #0063cb 100%);
+    --accent-glow: rgba(0, 0, 145, 0.06);
     
-    --success: hsl(142, 70%, 45%);
-    --success-bg: hsla(142, 70%, 45%, 0.15);
-    --success-border: hsla(142, 70%, 45%, 0.3);
+    /* Semantic system colors */
+    --success: #18753c;
+    --success-bg: #b8fec9;
+    --success-border: rgba(24, 117, 60, 0.25);
     
-    --danger: hsl(350, 80%, 55%);
-    --danger-bg: hsla(350, 80%, 55%, 0.15);
-    --danger-border: hsla(350, 80%, 55%, 0.3);
+    --danger: #ce0500;
+    --danger-bg: #fce9e9;
+    --danger-border: rgba(206, 5, 0, 0.25);
     
-    --warn: hsl(45, 90%, 50%);
-    --warn-bg: hsla(45, 90%, 50%, 0.15);
-    --warn-border: hsla(45, 90%, 50%, 0.3);
+    --warn: #b34000;
+    --warn-bg: #fddfd2;
+    --warn-border: rgba(179, 64, 0, 0.25);
 
     /* Text System */
-    --text-primary: hsl(220, 30%, 94%);
-    --text-secondary: hsl(220, 15%, 65%);
-    --text-muted: hsl(220, 10%, 45%);
-    --text-bright: hsl(0, 0%, 100%);
+    --text-primary: #161616;
+    --text-secondary: #3a3a3a;
+    --text-muted: #666666;
+    --text-bright: #000091;
 
     /* Typography */
-    --font-heading: 'Outfit', sans-serif;
+    --font-heading: 'Outfit', 'Inter', sans-serif;
     --font-body: 'Inter', sans-serif;
 
     /* Spacing & Borders */
-    --radius-sm: 8px;
-    --radius-md: 14px;
-    --radius-lg: 20px;
-    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --radius-sm: 4px;
+    --radius-md: 6px;
+    --radius-lg: 8px;
+    --transition-smooth: all 0.2s ease-in-out;
 }
 
 /* ----------------------------------------------------
@@ -71,7 +79,7 @@ body {
     background: rgba(0, 0, 0, 0.2);
 }
 ::-webkit-scrollbar-thumb {
-    background: hsla(228, 20%, 20%, 0.8);
+    background: #cccccc;
     border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
@@ -84,16 +92,14 @@ body {
 .glass-panel {
     background: var(--panel-bg);
     border: 1px solid var(--panel-border);
-    backdrop-filter: blur(16px) saturate(120%);
-    -webkit-backdrop-filter: blur(16px) saturate(120%);
     border-radius: var(--radius-md);
-    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
     transition: var(--transition-smooth);
 }
 
 .glass-panel:hover {
-    border-color: hsla(250, 88%, 66%, 0.25);
-    box-shadow: 0 12px 35px -12px rgba(0, 0, 0, 0.6), 0 0 15px 0 var(--panel-border-glow);
+    border-color: var(--accent);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .horizontal-divider {
@@ -172,7 +178,7 @@ body {
     display: flex;
     align-items: center;
     gap: 8px;
-    background: rgba(0, 0, 0, 0.25);
+    background: rgba(0, 0, 0, 0.03);
     padding: 8px 14px;
     border-radius: var(--radius-sm);
     border: 1px solid var(--panel-border);
@@ -205,7 +211,7 @@ body {
     display: flex;
     align-items: center;
     gap: 8px;
-    background: rgba(0, 0, 0, 0.2);
+    background: rgba(0, 0, 0, 0.03);
     padding: 4px 8px;
     border-radius: var(--radius-sm);
     border: 1px solid var(--panel-border);
@@ -291,8 +297,8 @@ body {
 
 select, input[type="text"], input[type="date"], input[type="number"], input[type="password"] {
     width: 100%;
-    background: hsla(228, 20%, 5%, 0.7);
-    border: 1px solid var(--panel-border);
+    background: #ffffff;
+    border: 1px solid #cccccc;
     border-radius: var(--radius-sm);
     color: var(--text-primary);
     padding: 10px 14px;
@@ -322,8 +328,8 @@ select {
 
 select:focus, input:focus {
     border-color: var(--accent);
-    box-shadow: 0 0 10px 0 var(--panel-border-glow);
-    background: hsla(228, 20%, 7%, 0.9);
+    box-shadow: 0 0 0 3px rgba(0, 0, 145, 0.15);
+    background: #ffffff;
 }
 
 .custom-ticker-input {
@@ -342,7 +348,7 @@ select:focus, input:focus {
 .accordion-group {
     border: 1px solid var(--panel-border);
     border-radius: var(--radius-sm);
-    background: hsla(228, 20%, 4%, 0.3);
+    background: #ffffff;
     overflow: hidden;
     margin-bottom: 8px;
 }
@@ -356,13 +362,13 @@ select:focus, input:focus {
     font-weight: 600;
     color: var(--text-secondary);
     cursor: pointer;
-    background: hsla(228, 20%, 6%, 0.4);
+    background: #f6f6f6;
     transition: var(--transition-smooth);
 }
 
 .accordion-header:hover {
-    color: var(--text-bright);
-    background: hsla(228, 20%, 8%, 0.6);
+    color: var(--blue);
+    background: var(--blue-light);
 }
 
 .accordion-header .chevron {
@@ -417,7 +423,7 @@ select:focus, input:focus {
 }
 
 .secondary-btn {
-    background: hsla(228, 20%, 15%, 0.4);
+    background: #f6f6f6;
     border: 1px solid var(--panel-border);
     color: var(--text-secondary);
     padding: 6px 12px;
@@ -630,9 +636,9 @@ select:focus, input:focus {
 .chart-wrapper {
     width: 100%;
     height: 380px;
-    background: hsla(228, 20%, 4%, 0.4);
+    background: #ffffff;
     border-radius: var(--radius-sm);
-    border: 1px dashed var(--panel-border);
+    border: 1px solid var(--panel-border);
     position: relative;
     overflow: hidden;
 }
@@ -695,7 +701,7 @@ select:focus, input:focus {
 }
 
 .data-table th {
-    background: hsla(228, 20%, 5%, 0.8);
+    background: #f6f6f6;
     color: var(--text-secondary);
     font-weight: 600;
     position: sticky;
@@ -704,12 +710,12 @@ select:focus, input:focus {
 }
 
 .data-table tbody tr {
-    background: hsla(228, 20%, 8%, 0.2);
+    background: #ffffff;
     transition: var(--transition-smooth);
 }
 
 .data-table tbody tr:hover {
-    background: hsla(228, 20%, 15%, 0.4);
+    background: var(--blue-light);
 }
 
 .data-table td {

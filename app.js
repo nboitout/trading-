@@ -518,37 +518,37 @@ function renderCharts(params) {
     // Global Chart Theme Options
     const chartOptions = {
         layout: {
-            background: { type: 'solid', color: 'rgba(20, 24, 43, 0.4)' },
-            textColor: '#d1d4dc',
+            background: { type: 'solid', color: '#ffffff' },
+            textColor: '#3a3a3a',
             fontSize: 11,
             fontFamily: 'Inter, sans-serif'
         },
         grid: {
-            vertLines: { color: 'rgba(43, 49, 73, 0.2)' },
-            horzLines: { color: 'rgba(43, 49, 73, 0.2)' }
+            vertLines: { color: 'rgba(229, 229, 229, 0.7)' },
+            horzLines: { color: 'rgba(229, 229, 229, 0.7)' }
         },
         crosshair: {
             mode: LightweightCharts.CrosshairMode.Normal,
             vertLine: {
-                color: '#6366f1',
+                color: '#000091',
                 width: 1,
-                style: 2, // dashed
-                labelBackgroundColor: '#6366f1',
+                style: LightweightCharts.LineStyle.Dashed,
+                labelBackgroundColor: '#000091',
             },
             horzLine: {
-                color: '#6366f1',
+                color: '#000091',
                 width: 1,
-                style: 2,
-                labelBackgroundColor: '#6366f1',
+                style: LightweightCharts.LineStyle.Dashed,
+                labelBackgroundColor: '#000091',
             }
         },
         timeScale: {
-            borderColor: 'rgba(43, 49, 73, 0.5)',
+            borderColor: '#e5e5e5',
             timeVisible: true,
             secondsVisible: false
         },
         rightPriceScale: {
-            borderColor: 'rgba(43, 49, 73, 0.5)'
+            borderColor: '#e5e5e5'
         }
     };
 
@@ -563,8 +563,8 @@ function renderCharts(params) {
         }
     });
 
-    const seriesColorA = '#818cf8'; // Electric indigo
-    const seriesColorB = '#fbbf24'; // Warm amber
+    const seriesColorA = '#000091'; // Blue France primary
+    const seriesColorB = '#b34000'; // DSFR Orange / Crimson accent
 
     let seriesDataA = [];
     let seriesDataB = [];
@@ -630,8 +630,8 @@ function renderCharts(params) {
 
     // Setup visual components
     const spreadSeries = spreadChart.addSeries(LightweightCharts.LineSeries, {
-        color: '#22d3ee', // Cyan neon
-        lineWidth: 2.5,
+        color: '#0063cb', // Steel Blue
+        lineWidth: 2,
         title: `Spread (${params.spreadModel.toUpperCase()})`,
         priceFormat: {
             type: 'custom',
@@ -640,21 +640,23 @@ function renderCharts(params) {
     });
 
     const maSeries = spreadChart.addSeries(LightweightCharts.LineSeries, {
-        color: 'hsla(45, 90%, 50%, 0.75)',
+        color: '#4b5563', // Slate Gray
         lineWidth: 1.5,
         lineStyle: LightweightCharts.LineStyle.Dashed,
         title: `MA (${params.bbPeriod})`
     });
 
     const upperSeries = spreadChart.addSeries(LightweightCharts.LineSeries, {
-        color: 'rgba(239, 68, 68, 0.45)', // Soft Red
-        lineWidth: 1,
+        color: 'rgba(206, 5, 0, 0.65)', // Red Band
+        lineWidth: 1.5,
+        lineStyle: LightweightCharts.LineStyle.Dotted,
         title: 'Upper Band'
     });
 
     const lowerSeries = spreadChart.addSeries(LightweightCharts.LineSeries, {
-        color: 'rgba(34, 197, 94, 0.45)', // Soft Green
-        lineWidth: 1,
+        color: 'rgba(24, 117, 60, 0.65)', // Green Band
+        lineWidth: 1.5,
+        lineStyle: LightweightCharts.LineStyle.Dotted,
         title: 'Lower Band'
     });
 

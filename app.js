@@ -2,7 +2,7 @@
 // APPLICATION GLOBAL STATE
 // ----------------------------------------------------
 const state = {
-    apiKey: "NQx2UHCnXOr7sulOTewrRMVTe7C0j6Jd",
+    apiKey: "",
     assetAData: [],
     assetBData: [],
     alignedData: [], // Array of { time, priceA, priceB, spread, ma, upper, lower, zscore }

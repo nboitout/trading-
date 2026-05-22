@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hyperscaler vs. SaaS Intraday Spread Monitor</title>
+    
+    <!-- Premium Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Custom CSS Stylesheet -->
+    <link rel="stylesheet" href="styles.css">
+    
+    <!-- TradingView Lightweight Charts CDN -->
+    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header glass-panel">
+            <div class="header-logo">
+                <div class="logo-icon">▲</div>
+                <div class="logo-text">
+                    <h1>Quant<span>Spread</span></h1>
+                    <p>Hyperscaler vs. SaaS Pairs Analysis</p>
+                </div>
+            </div>
+            <div class="header-status">
+                <div class="status-indicator connected" id="api-status">
+                    <span class="pulse-dot"></span>
+                    <span class="status-label">Polygon.io API Connected</span>
+                </div>
+                <div class="api-key-container">
+                    <label for="api-key-input">API Key:</label>
+                    <input type="password" id="api-key-input" value="NQx2UHCnXOr7sulOTewrRMVTe7C0j6Jd" placeholder="Enter Polygon.io Key">
+                    <button id="update-key-btn" class="icon-btn">💾</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Workspace Layout -->
+        <main class="app-main">
+            <!-- Sidebar Controls -->
+            <aside class="controls-sidebar glass-panel">
+                <h2>Parameters</h2>
+                
+                <form id="parameters-form" onsubmit="event.preventDefault();">
+                    <!-- Asset A: Hyperscaler -->
+                    <div class="control-group">
+                        <label for="asset-a-select">Asset A (Hyperscaler)</label>
+                        <div class="select-wrapper">
+                            <select id="asset-a-select">
+                                <option value="MSFT" selected>MSFT - Microsoft Corp.</option>
+                                <option value="GOOGL">GOOGL - Alphabet Inc. (A)</option>
+                                <option value="GOOG">GOOG - Alphabet Inc. (C)</option>
+                                <option value="AMZN">AMZN - Amazon.com, Inc.</option>
+                            </select>
+                        </div>
+                        <input type="text" id="asset-a-custom" class="custom-ticker-input" placeholder="Or enter custom ticker...">
+                    </div>
+
+                    <!-- Asset B: SaaS Company -->
+                    <div class="control-group">
+                        <label for="asset-b-select">Asset B (SaaS Company)</label>
+                        <div class="select-wrapper">
+                            <select id="asset-b-select">
+                                <option value="NOW" selected>NOW - ServiceNow, Inc.</option>
+                                <option value="SAP">SAP - SAP SE</option>
+                                <option value="TEAM">TEAM - Atlassian Corp.</option>
+                                <option value="PATH">PATH - UiPath Inc.</option>
+                                <option value="CRM">CRM - Salesforce, Inc.</option>
+                                <option value="DDOG">DDOG - Datadog, Inc.</option>
+                                <option value="WDAY">WDAY - Workday, Inc.</option>
+                                <option value="NET">NET - Cloudflare, Inc.</option>
+                                <option value="SNOW">SNOW - Snowflake Inc.</option>
+                            </select>
+                        </div>
+                        <input type="text" id="asset-b-custom" class="custom-ticker-input" placeholder="Or enter custom ticker...">
+                    </div>
+
+                    <div class="horizontal-divider"></div>
+
+                    <!-- Date Range & Interval -->
+                    <div class="control-row">
+                        <div class="control-group half-width">
+                            <label for="start-date-input">Start Date</label>
+                            <input type="date" id="start-date-input" value="2026-05-15">
+                        </div>
+                        <div class="control-group half-width">
+                            <label for="end-date-input">End Date</label>
+                            <input type="date" id="end-date-input" value="2026-05-20">
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <label for="interval-select">Timeframe</label>
+                        <div class="select-wrapper">
+                            <select id="interval-select">
+                                <option value="1">1 Minute</option>
+                                <option value="5" selected>5 Minutes</option>
+                                <option value="15">15 Minutes</option>
+                                <option value="30">30 Minutes</option>
+                                <option value="60">1 Hour</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Spread Model Selection -->
+                    <div class="control-group">
+                        <label for="spread-model">Spread Methodology</label>
+                        <div class="select-wrapper">
+                            <select id="spread-model">
+                                <option value="ratio" selected>Price Ratio (A / B)</option>
+                                <option value="log">Log Spread [ln(A) - ln(B)]</option>
+                                <option value="diff">Price Difference (A - B)</option>
+                                <option value="normalized">Normalized Return Spread (A% - B%)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Technical Tuning -->
+                    <div class="accordion-group">
+                        <div class="accordion-header" id="tech-tuning-toggle">
+                            <span>Bollinger Bands Tuning</span>
+                            <span class="chevron">▼</span>
+                        </div>
+                        <div class="accordion-content active" id="tech-tuning-content">
+                            <div class="control-row">
+                                <div class="control-group half-width">
+                                    <label for="bb-period">Period (MA)</label>
+                                    <input type="number" id="bb-period" value="20" min="5" max="50">
+                                </div>
+                                <div class="control-group half-width">
+                                    <label for="bb-stddev">StdDev Multiplier</label>
+                                    <input type="number" id="bb-stddev" value="2" step="0.1" min="0.5" max="4">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button id="fetch-btn" class="primary-btn">
+                        <span class="btn-text">Run Intraday Analysis</span>
+                        <span class="btn-loader hidden"></span>
+                    </button>
+                </form>
+            </aside>
+
+            <!-- Dashboard Analytics Console -->
+            <section class="dashboard-console">
+                <!-- Top Row: Quantitative Metrics Cards -->
+                <div class="metrics-grid">
+                    <!-- Metric 1: Correlation -->
+                    <div class="metric-card glass-panel" id="metric-correlation">
+                        <div class="metric-header">
+                            <h3>Pearson Correlation ($r$)</h3>
+                            <span class="metric-info-icon" title="Intraday linear correlation coefficient (-1.00 to +1.00)">ℹ</span>
+                        </div>
+                        <div class="metric-value" id="val-correlation">--</div>
+                        <div class="metric-desc">
+                            <span id="desc-correlation">Waiting for data...</span>
+                        </div>
+                    </div>
+
+                    <!-- Metric 2: Spread Z-Score -->
+                    <div class="metric-card glass-panel" id="metric-zscore">
+                        <div class="metric-header">
+                            <h3>Spread Z-Score</h3>
+                            <span class="metric-info-icon" title="Standard deviations the current spread is from the daily mean">ℹ</span>
+                        </div>
+                        <div class="metric-value" id="val-zscore">--</div>
+                        <div class="metric-desc">
+                            <span id="desc-zscore" class="neutral-badge">Neutral</span>
+                        </div>
+                    </div>
+
+                    <!-- Metric 3: Current Spread -->
+                    <div class="metric-card glass-panel" id="metric-spread">
+                        <div class="metric-header">
+                            <h3>Last Spread Value</h3>
+                            <span class="metric-info-icon" title="Current spread using chosen methodology">ℹ</span>
+                        </div>
+                        <div class="metric-value" id="val-spread">--</div>
+                        <div class="metric-desc">
+                            <span id="desc-spread">Daily Change: --</span>
+                        </div>
+                    </div>
+
+                    <!-- Metric 4: Spread Stats -->
+                    <div class="metric-card glass-panel" id="metric-stats">
+                        <div class="metric-header">
+                            <h3>Daily Spread Statistics</h3>
+                            <span class="metric-info-icon" title="Volatility and daily spread metrics">ℹ</span>
+                        </div>
+                        <div class="metric-stats-list">
+                            <div class="stat-row">
+                                <span class="stat-label">Intraday Volatility:</span>
+                                <span class="stat-value" id="val-volatility">--</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">Spread Mean:</span>
+                                <span class="stat-value" id="val-mean">--</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">Range (Max/Min):</span>
+                                <span class="stat-value" id="val-range">--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Container Panel -->
+                <div class="charts-panel glass-panel">
+                    <div class="panel-header">
+                        <div class="panel-titles">
+                            <h2>Relative Intraday Performance</h2>
+                            <p>Asset A vs. Asset B (Normalized to 100 at market open)</p>
+                        </div>
+                        <div class="panel-actions">
+                            <button id="toggle-chart-mode" class="secondary-btn active">Normalized %</button>
+                            <button id="toggle-chart-raw" class="secondary-btn">Raw Price</button>
+                        </div>
+                    </div>
+                    <div class="chart-wrapper" id="performance-chart-container">
+                        <!-- Chart 1 Injector -->
+                    </div>
+                </div>
+
+                <div class="charts-panel glass-panel">
+                    <div class="panel-header">
+                        <div class="panel-titles">
+                            <h2>Intraday Spread Dynamics</h2>
+                            <p id="spread-chart-subtitle">Price Ratio with Bollinger Bands overlay</p>
+                        </div>
+                    </div>
+                    <div class="chart-wrapper" id="spread-chart-container">
+                        <!-- Chart 2 Injector -->
+                    </div>
+                </div>
+
+                <!-- Aligned Data Table Section -->
+                <div class="data-table-panel glass-panel collapsed" id="data-table-section">
+                    <div class="panel-header" id="table-toggle-header">
+                        <h2>Aligned Intraday Data Records</h2>
+                        <button class="expand-btn">Show Raw Data Matrix</button>
+                    </div>
+                    <div class="table-content-wrapper">
+                        <table class="data-table" id="raw-data-table">
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th id="th-asset-a">Asset A ($)</th>
+                                    <th id="th-asset-b">Asset B ($)</th>
+                                    <th id="th-spread">Spread</th>
+                                    <th>Upper Band</th>
+                                    <th>Lower Band</th>
+                                    <th>Z-Score</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-body">
+                                <tr>
+                                    <td colspan="7" class="empty-table-msg">Run an intraday analysis to populate records.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="app-footer">
+            <p>&copy; 2026 QuantSpread. Built for active pairs-trading analysis. Powered by Polygon.io.</p>
+        </footer>
+    </div>
+
+    <!-- Core App Logic -->
+    <script src="app.js"></script>
+</body>
+</html>

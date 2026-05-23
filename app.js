@@ -1136,6 +1136,76 @@ function runSingleCustomAnalysis() {
     runSingleAnalysis(startDate, endDate, interval);
 }
 
+// ----------------------------------------------------
+// HYBRID STATIC EOD DATABASE + POLYGON LIVE STITCHER
+// ----------------------------------------------------
+async function fetchEODHistoricalData(ticker, startDate, endDate, intervalVal) {
+    const isDailyOrWeekly = intervalVal === "day" || intervalVal === "week";
+    const cutOffDate = new Date("2026-05-01");
+    const requestedStart = new Date(startDate);
+    
+    if (isDailyOrWeekly && requestedStart < cutOffDate) {
+        try {
+            const staticUrl = `data/${ticker}.json`;
+            const response = await fetch(staticUrl);
+            if (!response.ok) {
+                throw new Error(`Static EOD file for ${ticker} not found.`);
+            }
+            
+            const staticData = await response.json();
+            
+            if (staticData.length === 0) {
+                throw new Error(`Static EOD file for ${ticker} is empty.`);
+            }
+            
+            const lastStaticItem = staticData[staticData.length - 1];
+            const lastStaticDateStr = lastStaticItem.time;
+            const lastStaticDateObj = new Date(lastStaticDateStr);
+            const requestedEndObj = new Date(endDate);
+            
+            let filteredStatic = staticData.filter(item => new Date(item.time) >= requestedStart);
+            
+            if (requestedEndObj <= lastStaticDateObj) {
+                return filteredStatic.filter(item => new Date(item.time) <= requestedEndObj);
+            }
+            
+            // Query Polygon starting exactly from the last static date to requestedEnd
+            const liveData = await fetchIntradayData(ticker, lastStaticDateStr, endDate, intervalVal);
+            
+            const dataMap = new Map();
+            filteredStatic.forEach(item => dataMap.set(item.time, item.value));
+            
+            liveData.forEach(bar => {
+                const dateStr = convertTimestampToNYDateString(bar.t);
+                dataMap.set(dateStr, bar.c);
+            });
+            
+            const sortedDates = Array.from(dataMap.keys()).sort();
+            return sortedDates.map(date => {
+                return { time: date, value: dataMap.get(date) };
+            });
+            
+        } catch (error) {
+            console.warn("Hybrid fetch failed or static file not found, falling back to clean Polygon fetch:", error);
+            const rawData = await fetchIntradayData(ticker, startDate, endDate, intervalVal);
+            return rawData.map(bar => {
+                return {
+                    time: convertTimestampToNYDateString(bar.t),
+                    value: bar.c
+                };
+            });
+        }
+    } else {
+        const rawData = await fetchIntradayData(ticker, startDate, endDate, intervalVal);
+        return rawData.map(bar => {
+            return {
+                time: isDailyOrWeekly ? convertTimestampToNYDateString(bar.t) : convertUTCToESTTimestamp(bar.t),
+                value: bar.c
+            };
+        });
+    }
+}
+
 async function runSingleAnalysis(startDate, endDate, interval) {
     const container = document.getElementById("single-chart-container");
     const ticker = document.getElementById("single-asset-select").value;
@@ -1149,20 +1219,11 @@ async function runSingleAnalysis(startDate, endDate, interval) {
     `;
 
     try {
-        const rawData = await fetchIntradayData(ticker, startDate, endDate, interval);
+        const seriesData = await fetchEODHistoricalData(ticker, startDate, endDate, interval);
         
-        if (!rawData || rawData.length === 0) {
-            throw new Error(`No historical records returned by Polygon for ${ticker} between ${startDate} and ${endDate}. Please verify ticker availability.`);
+        if (!seriesData || seriesData.length === 0) {
+            throw new Error(`No historical records returned for ${ticker} between ${startDate} and ${endDate}. Please verify ticker availability.`);
         }
-
-        // Format data: we map EOD items
-        // Let's create an array of { time: "YYYY-MM-DD", value: Close }
-        const seriesData = rawData.map(bar => {
-            return {
-                time: convertTimestampToNYDateString(bar.t),
-                value: bar.c
-            };
-        });
 
         // 1. Render single historical chart
         container.innerHTML = "";
@@ -1232,7 +1293,7 @@ async function runSingleAnalysis(startDate, endDate, interval) {
         resizeObserver.observe(container);
 
         // 2. Calculate summary statistics EOD
-        const closes = rawData.map(b => b.c);
+        const closes = seriesData.map(b => b.value);
         const minVal = Math.min(...closes);
         const maxVal = Math.max(...closes);
         

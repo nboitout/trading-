@@ -9,6 +9,7 @@ const state = {
     charts: {
         priceChart: null,
         spreadChart: null,
+        singleChart: null,
         series: {}
     },
     chartMode: "normalized", // "normalized" or "raw"
@@ -20,6 +21,7 @@ const state = {
 document.addEventListener("DOMContentLoaded", () => {
     initUI();
     initAccordion();
+    initTabs();
     loadKeyFromLocalStorage();
     
     // Automatically trigger initial analysis on load with default variables
@@ -994,4 +996,292 @@ function showToast(message, type = "success") {
             toast.remove();
         }, 300);
     }, 4500);
+}
+
+// ----------------------------------------------------
+// TAB NAVIGATION SYSTEM
+// ----------------------------------------------------
+function initTabs() {
+    const tabPairsBtn = document.getElementById("tab-pairs");
+    const tabSingleBtn = document.getElementById("tab-single");
+    
+    const sectionPairs = document.getElementById("section-pairs");
+    const sectionSingle = document.getElementById("section-single");
+    
+    tabPairsBtn.addEventListener("click", () => {
+        tabPairsBtn.classList.add("active");
+        tabSingleBtn.classList.remove("active");
+        
+        sectionPairs.classList.remove("hidden");
+        sectionSingle.classList.add("hidden");
+        
+        // Auto-fit contents if charts exist
+        if (state.charts.priceChart) state.charts.priceChart.timeScale().fitContent();
+        if (state.charts.spreadChart) state.charts.spreadChart.timeScale().fitContent();
+    });
+    
+    tabSingleBtn.addEventListener("click", () => {
+        tabSingleBtn.classList.add("active");
+        tabPairsBtn.classList.remove("active");
+        
+        sectionSingle.classList.remove("hidden");
+        sectionPairs.classList.add("hidden");
+        
+        // Sync the dropdown assets on open
+        syncSingleDropdown();
+        
+        // Auto-trigger a 1-year historical chart if not yet populated
+        if (!state.charts.singleChart) {
+            triggerSinglePreset("1y");
+        } else {
+            state.charts.singleChart.timeScale().fitContent();
+        }
+    });
+
+    // Wire single presets
+    const presetButtons = document.querySelectorAll("#single-presets button");
+    presetButtons.forEach(btn => {
+        btn.addEventListener("click", (e) => {
+            // Remove active classes
+            presetButtons.forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            
+            const range = btn.getAttribute("data-range");
+            triggerSinglePreset(range);
+        });
+    });
+
+    // Wire custom date range run button
+    document.getElementById("single-run-btn").addEventListener("click", runSingleCustomAnalysis);
+}
+
+function syncSingleDropdown() {
+    const select = document.getElementById("single-asset-select");
+    const params = getAnalysisParams();
+    
+    // Clear and rebuild options
+    select.innerHTML = `
+        <option value="${params.tickerA}">Asset A (${params.tickerA})</option>
+        <option value="${params.tickerB}">Asset B (${params.tickerB})</option>
+    `;
+}
+
+function triggerSinglePreset(range) {
+    const today = new Date();
+    let startDate = new Date();
+    let interval = "day"; // Default is Daily
+    
+    switch (range) {
+        case "1y":
+            startDate.setFullYear(today.getFullYear() - 1);
+            interval = "day";
+            break;
+        case "2y":
+            startDate.setFullYear(today.getFullYear() - 2);
+            interval = "day";
+            break;
+        case "5y":
+            startDate.setFullYear(today.getFullYear() - 5);
+            interval = "week"; // Weekly EOD bars
+            break;
+        case "10y":
+            startDate.setFullYear(today.getFullYear() - 10);
+            interval = "week"; // Weekly EOD bars
+            break;
+    }
+
+    // Format dates as YYYY-MM-DD
+    const formatDate = (d) => {
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+    };
+
+    const endDateStr = formatDate(today);
+    const startDateStr = formatDate(startDate);
+
+    // Sync input fields
+    document.getElementById("single-start-date").value = startDateStr;
+    document.getElementById("single-end-date").value = endDateStr;
+
+    // Run Single analysis
+    runSingleAnalysis(startDateStr, endDateStr, interval);
+}
+
+function runSingleCustomAnalysis() {
+    const startDate = document.getElementById("single-start-date").value;
+    const endDate = document.getElementById("single-end-date").value;
+    
+    if (!startDate || !endDate) {
+        showToast("Please pick both start and end dates.", "error");
+        return;
+    }
+    
+    if (new Date(startDate) > new Date(endDate)) {
+        showToast("Start date cannot be after end date.", "error");
+        return;
+    }
+
+    // Determine interval automatically: if range > 3 years, use weekly. Otherwise use daily.
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const diffYears = (end - start) / (1000 * 60 * 60 * 24 * 365.25);
+    const interval = diffYears > 3.0 ? "week" : "day";
+    
+    // Clear active preset buttons highlighting since this is custom
+    const presetButtons = document.querySelectorAll("#single-presets button");
+    presetButtons.forEach(btn => btn.classList.remove("active"));
+    
+    runSingleAnalysis(startDate, endDate, interval);
+}
+
+async function runSingleAnalysis(startDate, endDate, interval) {
+    const container = document.getElementById("single-chart-container");
+    const ticker = document.getElementById("single-asset-select").value;
+    
+    // Show Loading inside the chart
+    container.innerHTML = `
+        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; font-size:14px; color:var(--text-secondary); gap:12px;">
+            <div class="btn-loader" style="border-top-color:var(--accent); width:24px; height:24px;"></div>
+            <span>Fetching Historical Data from Polygon...</span>
+        </div>
+    `;
+
+    try {
+        const rawData = await fetchIntradayData(ticker, startDate, endDate, interval);
+        
+        if (!rawData || rawData.length === 0) {
+            throw new Error(`No historical records returned by Polygon for ${ticker} between ${startDate} and ${endDate}. Please verify ticker availability.`);
+        }
+
+        // Format data: we map EOD items
+        // Let's create an array of { time: "YYYY-MM-DD", value: Close }
+        const seriesData = rawData.map(bar => {
+            return {
+                time: convertTimestampToNYDateString(bar.t),
+                value: bar.c
+            };
+        });
+
+        // 1. Render single historical chart
+        container.innerHTML = "";
+        
+        const chartOptions = {
+            layout: {
+                background: { type: 'solid', color: '#ffffff' },
+                textColor: '#3a3a3a',
+                fontSize: 11,
+                fontFamily: 'Inter, sans-serif'
+            },
+            grid: {
+                vertLines: { color: 'rgba(229, 229, 229, 0.7)' },
+                horzLines: { color: 'rgba(229, 229, 229, 0.7)' }
+            },
+            crosshair: {
+                mode: LightweightCharts.CrosshairMode.Normal,
+                vertLine: {
+                    color: '#000091',
+                    width: 1,
+                    style: LightweightCharts.LineStyle.Dashed,
+                    labelBackgroundColor: '#000091',
+                },
+                horzLine: {
+                    color: '#000091',
+                    width: 1,
+                    style: LightweightCharts.LineStyle.Dashed,
+                    labelBackgroundColor: '#000091',
+                }
+            },
+            timeScale: {
+                borderColor: '#e5e5e5',
+                timeVisible: false,
+                secondsVisible: false
+            },
+            rightPriceScale: {
+                borderColor: '#e5e5e5'
+            }
+        };
+
+        const singleChart = LightweightCharts.createChart(container, chartOptions);
+        
+        const singleSeries = singleChart.addSeries(LightweightCharts.LineSeries, {
+            color: '#000091', // Blue France accent
+            lineWidth: 2,
+            title: `${ticker} Price ($)`,
+            priceFormat: {
+                type: 'custom',
+                formatter: value => `$${value.toFixed(2)}`
+            }
+        });
+
+        singleSeries.setData(seriesData);
+        singleChart.timeScale().fitContent();
+
+        // Save reference
+        state.charts.singleChart = singleChart;
+
+        // Auto-resize
+        const resizeObserver = new ResizeObserver(entries => {
+            for (let entry of entries) {
+                if (state.charts.singleChart) {
+                    state.charts.singleChart.resize(entry.contentRect.width, 380);
+                }
+            }
+        });
+        resizeObserver.observe(container);
+
+        // 2. Calculate summary statistics EOD
+        const closes = rawData.map(b => b.c);
+        const minVal = Math.min(...closes);
+        const maxVal = Math.max(...closes);
+        
+        let sum = 0;
+        closes.forEach(c => sum += c);
+        const avgVal = sum / closes.length;
+        
+        const firstClose = closes[0];
+        const lastClose = closes[closes.length - 1];
+        const returnPct = ((lastClose - firstClose) / firstClose) * 100;
+
+        // Render summary stats in UI
+        const returnEl = document.getElementById("single-val-return");
+        if (returnPct >= 0) {
+            returnEl.innerHTML = `<span style="color:var(--success); font-weight:700;">+${returnPct.toFixed(2)}%</span>`;
+        } else {
+            returnEl.innerHTML = `<span style="color:var(--danger); font-weight:700;">${returnPct.toFixed(2)}%</span>`;
+        }
+        
+        document.getElementById("single-val-peak").textContent = `$${maxVal.toFixed(2)}`;
+        document.getElementById("single-val-trough").textContent = `$${minVal.toFixed(2)}`;
+        document.getElementById("single-val-avg").textContent = `$${avgVal.toFixed(2)}`;
+
+    } catch (error) {
+        console.error(error);
+        
+        // Show clear error fallback inside chart wrapper
+        const isLookbackError = error.message.includes("lookback") || new Date(startDate) < new Date(new Date().setFullYear(new Date().getFullYear() - 2));
+        
+        if (isLookbackError) {
+            container.innerHTML = `
+                <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; font-size:13px; color:var(--text-muted); padding:30px; text-align:center; gap:12px;">
+                    <div style="font-size:28px;">ℹ️</div>
+                    <div style="font-weight:600; color:var(--text-primary); font-size:14px;">Polygon.io Free Tier Historical Lookback Boundary</div>
+                    <div style="max-width:500px; line-height:1.6;">Your selected range goes back beyond 2 years. Polygon's free API key has a strict 2-year lookback limit. Showing historical aggregates is capped at this boundary. Upgrade to a paid Polygon key for full 5Y/10Y data access.</div>
+                </div>
+            `;
+        } else {
+            container.innerHTML = `
+                <div style="display:flex; align-items:center; justify-content:center; height:100%; font-size:13px; color:var(--danger); padding:30px; text-align:center;">
+                    ${error.message}
+                </div>
+            `;
+        }
+        
+        // Reset summary stats
+        document.getElementById("single-val-return").textContent = "--";
+        document.getElementById("single-val-peak").textContent = "--";
+        document.getElementById("single-val-trough").textContent = "--";
+        document.getElementById("single-val-avg").textContent = "--";
+    }
 }

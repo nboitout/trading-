@@ -211,60 +211,155 @@
                     </div>
                 </div>
 
-                <!-- Charts Container Panel -->
-                <div class="charts-panel glass-panel">
-                    <div class="panel-header">
-                        <div class="panel-titles">
-                            <h2>Relative Intraday Performance</h2>
-                            <p>Asset A vs. Asset B (Normalized to 100 at market open)</p>
+                <!-- Tab Navigation -->
+                <div class="tab-navigation glass-panel" style="margin-bottom: 24px;">
+                    <button class="tab-btn active" id="tab-pairs">Pairs Trading Monitor</button>
+                    <button class="tab-btn" id="tab-single">Single Stock History</button>
+                </div>
+
+                <!-- Tab 1: Pairs Trading Section -->
+                <div id="section-pairs" class="tab-content">
+                    <!-- Charts Container Panel -->
+                    <div class="charts-panel glass-panel">
+                        <div class="panel-header">
+                            <div class="panel-titles">
+                                <h2>Relative Intraday Performance</h2>
+                                <p>Asset A vs. Asset B (Normalized to 100 at market open)</p>
+                            </div>
+                            <div class="panel-actions">
+                                <button id="toggle-chart-mode" class="secondary-btn active">Normalized %</button>
+                                <button id="toggle-chart-raw" class="secondary-btn">Raw Price</button>
+                            </div>
                         </div>
-                        <div class="panel-actions">
-                            <button id="toggle-chart-mode" class="secondary-btn active">Normalized %</button>
-                            <button id="toggle-chart-raw" class="secondary-btn">Raw Price</button>
+                        <div class="chart-wrapper" id="performance-chart-container">
+                            <!-- Chart 1 Injector -->
                         </div>
                     </div>
-                    <div class="chart-wrapper" id="performance-chart-container">
-                        <!-- Chart 1 Injector -->
+
+                    <div class="charts-panel glass-panel">
+                        <div class="panel-header">
+                            <div class="panel-titles">
+                                <h2>Intraday Spread Dynamics</h2>
+                                <p id="spread-chart-subtitle">Price Ratio with Bollinger Bands overlay</p>
+                            </div>
+                        </div>
+                        <div class="chart-wrapper" id="spread-chart-container">
+                            <!-- Chart 2 Injector -->
+                        </div>
+                    </div>
+
+                    <!-- Aligned Data Table Section -->
+                    <div class="data-table-panel glass-panel collapsed" id="data-table-section">
+                        <div class="panel-header" id="table-toggle-header">
+                            <h2>Aligned Intraday Data Records</h2>
+                            <button class="expand-btn">Show Raw Data Matrix</button>
+                        </div>
+                        <div class="table-content-wrapper">
+                            <table class="data-table" id="raw-data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Timestamp</th>
+                                        <th id="th-asset-a">Asset A ($)</th>
+                                        <th id="th-asset-b">Asset B ($)</th>
+                                        <th id="th-spread">Spread</th>
+                                        <th>Upper Band</th>
+                                        <th>Lower Band</th>
+                                        <th>Z-Score</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="table-body">
+                                    <tr>
+                                        <td colspan="7" class="empty-table-msg">Run an intraday analysis to populate records.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
 
-                <div class="charts-panel glass-panel">
-                    <div class="panel-header">
-                        <div class="panel-titles">
-                            <h2>Intraday Spread Dynamics</h2>
-                            <p id="spread-chart-subtitle">Price Ratio with Bollinger Bands overlay</p>
+                <!-- Tab 2: Single Ticker History Section -->
+                <div id="section-single" class="tab-content hidden">
+                    <div class="charts-panel glass-panel">
+                        <div class="panel-header" style="flex-wrap: wrap; gap: 16px;">
+                            <div class="panel-titles">
+                                <h2>Single Asset Historical Level</h2>
+                                <p>Nominal, non-normalized price series over extended time horizons</p>
+                            </div>
+                            
+                            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                                <!-- Asset Select -->
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <label for="single-asset-select" style="font-size: 12px; font-weight: 600; color: var(--text-secondary);">Asset:</label>
+                                    <div class="select-wrapper" style="width: 140px;">
+                                        <select id="single-asset-select" style="padding: 6px 12px; font-size: 12.5px;">
+                                            <option value="MSFT">Asset A</option>
+                                            <option value="NOW">Asset B</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- Preset Buttons -->
+                                <div class="panel-actions" id="single-presets" style="display: flex; gap: 6px;">
+                                    <button data-range="1y" class="secondary-btn active">1 Year</button>
+                                    <button data-range="2y" class="secondary-btn">2 Years</button>
+                                    <button data-range="5y" class="secondary-btn">5 Years</button>
+                                    <button data-range="10y" class="secondary-btn">10 Years</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Specific Date input -->
+                        <div class="control-row" style="margin-bottom: 20px; background: rgba(0, 0, 0, 0.02); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--panel-border); align-items: center; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <label for="single-start-date" style="font-size: 12px; font-weight: 500; color: var(--text-secondary);">Specific Start Date:</label>
+                                    <input type="date" id="single-start-date" value="2024-05-23" style="padding: 6px 10px; width: 140px; font-size: 12px;">
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <label for="single-end-date" style="font-size: 12px; font-weight: 500; color: var(--text-secondary);">End Date:</label>
+                                    <input type="date" id="single-end-date" value="2026-05-23" style="padding: 6px 10px; width: 140px; font-size: 12px;">
+                                </div>
+                            </div>
+                            <div>
+                                <button id="single-run-btn" class="primary-btn" style="padding: 8px 20px; font-size: 12.5px; width: auto; box-shadow: none;">Fetch Custom Range</button>
+                            </div>
+                        </div>
+
+                        <!-- Chart Container -->
+                        <div class="chart-wrapper" id="single-chart-container">
+                            <div style="display:flex; align-items:center; justify-content:center; height:100%; font-size:13px; color:var(--text-muted); padding:30px; text-align:center;">Select an asset and range to populate the historical chart.</div>
                         </div>
                     </div>
-                    <div class="chart-wrapper" id="spread-chart-container">
-                        <!-- Chart 2 Injector -->
-                    </div>
-                </div>
 
-                <!-- Aligned Data Table Section -->
-                <div class="data-table-panel glass-panel collapsed" id="data-table-section">
-                    <div class="panel-header" id="table-toggle-header">
-                        <h2>Aligned Intraday Data Records</h2>
-                        <button class="expand-btn">Show Raw Data Matrix</button>
-                    </div>
-                    <div class="table-content-wrapper">
-                        <table class="data-table" id="raw-data-table">
-                            <thead>
-                                <tr>
-                                    <th>Timestamp</th>
-                                    <th id="th-asset-a">Asset A ($)</th>
-                                    <th id="th-asset-b">Asset B ($)</th>
-                                    <th id="th-spread">Spread</th>
-                                    <th>Upper Band</th>
-                                    <th>Lower Band</th>
-                                    <th>Z-Score</th>
-                                </tr>
-                            </thead>
-                            <tbody id="table-body">
-                                <tr>
-                                    <td colspan="7" class="empty-table-msg">Run an intraday analysis to populate records.</td>
-                                </tr>
-                            </tbody>
-                        </table>
+                    <!-- Single Asset Stats Summary Section -->
+                    <div class="data-table-panel glass-panel" id="single-stats-panel" style="padding: 20px;">
+                        <h2>Historical Summary Metrics</h2>
+                        <div style="margin-top: 15px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+                            <div class="metric-card glass-panel" style="height: 100px; box-shadow: none; border-color: var(--panel-border); background: rgba(0,0,0,0.01);">
+                                <div class="metric-header">
+                                    <h3>Total Period Return</h3>
+                                </div>
+                                <div class="metric-value" id="single-val-return" style="font-size: 24px; margin-top: 8px;">--</div>
+                            </div>
+                            <div class="metric-card glass-panel" style="height: 100px; box-shadow: none; border-color: var(--panel-border); background: rgba(0,0,0,0.01);">
+                                <div class="metric-header">
+                                    <h3>Peak Price (High)</h3>
+                                </div>
+                                <div class="metric-value" id="single-val-peak" style="font-size: 24px; margin-top: 8px;">--</div>
+                            </div>
+                            <div class="metric-card glass-panel" style="height: 100px; box-shadow: none; border-color: var(--panel-border); background: rgba(0,0,0,0.01);">
+                                <div class="metric-header">
+                                    <h3>Trough Price (Low)</h3>
+                                </div>
+                                <div class="metric-value" id="single-val-trough" style="font-size: 24px; margin-top: 8px;">--</div>
+                            </div>
+                            <div class="metric-card glass-panel" style="height: 100px; box-shadow: none; border-color: var(--panel-border); background: rgba(0,0,0,0.01);">
+                                <div class="metric-header">
+                                    <h3>Average Price</h3>
+                                </div>
+                                <div class="metric-value" id="single-val-avg" style="font-size: 24px; margin-top: 8px;">--</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>

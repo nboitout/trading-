@@ -45,6 +45,49 @@ function initUI() {
     tableHeader.addEventListener("click", () => {
         tablePanel.classList.toggle("collapsed");
     });
+
+    // Auto-adjust date range when switching intervals for optimal visualization
+    document.getElementById("interval-select").addEventListener("change", (e) => {
+        const interval = e.target.value;
+        const startDateInput = document.getElementById("start-date-input");
+        const endDateInput = document.getElementById("end-date-input");
+        
+        if (interval === "day" || interval === "week") {
+            // Set range to past 6 months if current range is less than 30 days
+            const start = new Date(startDateInput.value + "T00:00:00");
+            const end = new Date(endDateInput.value + "T00:00:00");
+            const diffTime = Math.abs(end - start);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            if (diffDays < 30) {
+                const newStart = new Date(end);
+                newStart.setMonth(newStart.getMonth() - 6);
+                
+                const yyyy = newStart.getFullYear();
+                const mm = String(newStart.getMonth() + 1).padStart(2, '0');
+                const dd = String(newStart.getDate()).padStart(2, '0');
+                startDateInput.value = `${yyyy}-${mm}-${dd}`;
+                showToast("Adjusted date range to past 6 months for daily/weekly analysis.", "success");
+            }
+        } else {
+            // For intraday (minutes), set range back to past 5 days if current range is larger than 14 days
+            const start = new Date(startDateInput.value + "T00:00:00");
+            const end = new Date(endDateInput.value + "T00:00:00");
+            const diffTime = Math.abs(end - start);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            if (diffDays > 14) {
+                const newStart = new Date(end);
+                newStart.setDate(newStart.getDate() - 5);
+                
+                const yyyy = newStart.getFullYear();
+                const mm = String(newStart.getMonth() + 1).padStart(2, '0');
+                const dd = String(newStart.getDate()).padStart(2, '0');
+                startDateInput.value = `${yyyy}-${mm}-${dd}`;
+                showToast("Adjusted date range to past 5 days for intraday analysis.", "success");
+            }
+        }
+    });
 }
 
 function initAccordion() {
@@ -164,7 +207,7 @@ async function runAnalysis() {
         state.assetBData = dataB;
         
         // Processing
-        alignTimeSeries();
+        alignTimeSeries(params);
         calculateSpreadAndIndicators(params);
         
         // Calculations
@@ -229,12 +272,26 @@ function getAnalysisParams() {
 // ----------------------------------------------------
 // POLYGON API DATA FETCHING
 // ----------------------------------------------------
-async function fetchIntradayData(ticker, startDate, endDate, intervalMinutes) {
+async function fetchIntradayData(ticker, startDate, endDate, intervalVal) {
     if (!state.apiKey) {
         throw new Error("Polygon.io API Key is missing. Please enter it in the header.");
     }
 
-    const url = `https://api.polygon.io/v2/aggs/ticker/${ticker}/range/${intervalMinutes}/minute/${startDate}/${endDate}?adjusted=true&sort=asc&limit=50000&apiKey=${state.apiKey}`;
+    let multiplier = 1;
+    let timespan = "minute";
+
+    if (intervalVal === "day") {
+        multiplier = 1;
+        timespan = "day";
+    } else if (intervalVal === "week") {
+        multiplier = 1;
+        timespan = "week";
+    } else {
+        multiplier = parseInt(intervalVal) || 1;
+        timespan = "minute";
+    }
+
+    const url = `https://api.polygon.io/v2/aggs/ticker/${ticker}/range/${multiplier}/${timespan}/${startDate}/${endDate}?adjusted=true&sort=asc&limit=50000&apiKey=${state.apiKey}`;
     
     const response = await fetch(url);
     if (!response.ok) {
@@ -266,7 +323,16 @@ function convertUTCToESTTimestamp(utcMillis) {
     return nyDateObj.getTime() / 1000;
 }
 
-function alignTimeSeries() {
+// Convert UTC millisecond timestamp of a daily/weekly bar to a solid "YYYY-MM-DD" local trading date string
+function convertTimestampToNYDateString(utcMillis) {
+    const date = new Date(utcMillis);
+    const yyyy = date.getUTCFullYear();
+    const mm = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const dd = String(date.getUTCDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+}
+
+function alignTimeSeries(params) {
     // Maps to track fast access
     const mapA = new Map();
     const mapB = new Map();
@@ -302,6 +368,8 @@ function alignTimeSeries() {
         if (lastCloseA !== null && lastCloseB !== null) break;
     }
 
+    const isDailyOrWeekly = params.interval === "day" || params.interval === "week";
+
     // Main forward fill alignment loop
     sortedTimestamps.forEach(t => {
         const barA = mapA.get(t);
@@ -311,7 +379,7 @@ function alignTimeSeries() {
         const priceB = barB ? barB.c : lastCloseB;
 
         aligned.push({
-            time: convertUTCToESTTimestamp(t), // TV lightweight charts will render nominal New York Time
+            time: isDailyOrWeekly ? convertTimestampToNYDateString(t) : convertUTCToESTTimestamp(t),
             priceA: priceA,
             priceB: priceB,
             volumeA: barA ? barA.v : 0,
@@ -473,7 +541,8 @@ function computeQuantitativeMetrics(params) {
     const spreadDeltaPct = firstSpread === 0 ? 0 : (spreadDelta / firstSpread) * 100;
     
     const isMultiDay = params.startDate !== params.endDate;
-    const rangeLabel = isMultiDay ? "Range" : "Intraday";
+    const isDailyOrWeekly = params.interval === "day" || params.interval === "week";
+    const rangeLabel = (isMultiDay || isDailyOrWeekly) ? "Range" : "Intraday";
     
     if (spreadDelta > 0) {
         spreadDescEl.innerHTML = `${rangeLabel} Expansion: <span style="color:var(--success); font-weight:600;">+${spreadDelta.toFixed(4)} (+${spreadDeltaPct.toFixed(2)}%)</span>`;
@@ -544,7 +613,7 @@ function renderCharts(params) {
         },
         timeScale: {
             borderColor: '#e5e5e5',
-            timeVisible: true,
+            timeVisible: !(params.interval === "day" || params.interval === "week"),
             secondsVisible: false
         },
         rightPriceScale: {
@@ -610,17 +679,19 @@ function renderCharts(params) {
 
     // Dynamic Title and Header updates
     const isMultiDay = params.startDate !== params.endDate;
+    const isDailyOrWeekly = params.interval === "day" || params.interval === "week";
+    const isHistorical = isMultiDay || isDailyOrWeekly;
     
     const chart1Header = priceContainer.closest(".charts-panel").querySelector(".panel-titles h2");
-    chart1Header.textContent = isMultiDay ? "Relative Historical Performance" : "Relative Intraday Performance";
+    chart1Header.textContent = isHistorical ? "Relative Historical Performance" : "Relative Intraday Performance";
 
     const chart1Title = priceContainer.closest(".charts-panel").querySelector(".panel-titles p");
     chart1Title.textContent = state.chartMode === "normalized" 
-        ? `${params.tickerA} vs. ${params.tickerB} Cumulative ${isMultiDay ? 'Range' : 'Daily'} Returns (Normalized to 100)`
+        ? `${params.tickerA} vs. ${params.tickerB} Cumulative ${isHistorical ? 'Range' : 'Daily'} Returns (Normalized to 100)`
         : `${params.tickerA} vs. ${params.tickerB} Nominal Share Prices ($)`;
 
     const chart2Header = spreadContainer.closest(".charts-panel").querySelector(".panel-titles h2");
-    chart2Header.textContent = isMultiDay ? "Historical Spread Dynamics" : "Intraday Spread Dynamics";
+    chart2Header.textContent = isHistorical ? "Historical Spread Dynamics" : "Intraday Spread Dynamics";
 
     // -----------------------------------------
     // CHART 2: QUANTITATIVE SPREAD DYNAMICS
@@ -791,18 +862,23 @@ function renderDataTable(params) {
     }
 
     const isMultiDay = params.startDate !== params.endDate;
+    const isDailyOrWeekly = params.interval === "day" || params.interval === "week";
 
     const rowsHTML = renderData.map(bar => {
-        const dateObj = new Date(bar.time * 1000);
-        
         // Clean timestamp formatting (includes Date for multi-day ranges)
         let timeStr = "";
-        if (isMultiDay) {
-            const dateStr = dateObj.toLocaleDateString([], { month: '2-digit', day: '2-digit' });
-            const clockStr = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            timeStr = `${dateStr} ${clockStr}`;
+        if (isDailyOrWeekly) {
+            const parts = bar.time.split("-");
+            timeStr = `${parts[1]}/${parts[2]}/${parts[0]}`; // MM/DD/YYYY
         } else {
-            timeStr = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const dateObj = new Date(bar.time * 1000);
+            if (isMultiDay) {
+                const dateStr = dateObj.toLocaleDateString([], { month: '2-digit', day: '2-digit' });
+                const clockStr = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                timeStr = `${dateStr} ${clockStr}`;
+            } else {
+                timeStr = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            }
         }
         
         let zBadge = "neutral-badge";

@@ -135,14 +135,15 @@ body {
     gap: 16px;
 }
 
-.logo-icon {
-    font-size: 28px;
-    background: var(--accent-gradient);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    filter: drop-shadow(0 0 8px var(--accent-glow));
-    font-weight: 800;
-    transform: rotate(30deg);
+.gem-logo {
+    max-height: 44px;
+    width: auto;
+    object-fit: contain;
+    transition: var(--transition-smooth);
+}
+
+.gem-logo:hover {
+    transform: scale(1.05);
 }
 
 .logo-text h1 {

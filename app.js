@@ -15,10 +15,22 @@ const state = {
     chartMode: "normalized", // "normalized" or "raw"
 };
 
-// ----------------------------------------------------
-// INITIALIZATION AND DOM LISTENERS
-// ----------------------------------------------------
+function formatDateToLocalYYYYMMDD(date) {
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+}
+
 document.addEventListener("DOMContentLoaded", () => {
+    // Default dates: today and 5 days ago
+    const today = new Date();
+    const fiveDaysAgo = new Date();
+    fiveDaysAgo.setDate(today.getDate() - 5);
+    
+    document.getElementById("start-date-input").value = formatDateToLocalYYYYMMDD(fiveDaysAgo);
+    document.getElementById("end-date-input").value = formatDateToLocalYYYYMMDD(today);
+
     initUI();
     initAccordion();
     initTabs();
